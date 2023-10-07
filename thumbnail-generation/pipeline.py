@@ -12,9 +12,6 @@ from scenedetect import detect, ContentDetector, split_video_ffmpeg, AdaptiveDet
 import subprocess
 import argparse
 
-model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
-img_model = SentenceTransformer('clip-ViT-B-32')
-
 # Helper to display images
 def plot_images(images, query, n_row=3, n_col=3):
     _, axs = plt.subplots(n_row, n_col, figsize=(12, 12))
@@ -25,7 +22,7 @@ def plot_images(images, query, n_row=3, n_col=3):
     plt.show()
     
 # Query embedded images
-def search(img_emb, img_names, query, k=9):
+def search(model, img_emb, img_names, query, k=9):
     query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
     
     hits = util.semantic_search(query_emb, img_emb, top_k=k)[0]
@@ -51,10 +48,9 @@ def apply_font(text):
     raise NotImplementedError
     
 # Start pipeline
-def main(vid_name, prompt):
-    vid_name = './videos/balrog.mp4'
-
-    subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
+def main(model, img_model, vid_name, prompt, num_frames=4):
+    if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
+        subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
 
     data_path = './scene-keyframes/'
 
@@ -62,18 +58,28 @@ def main(vid_name, prompt):
 
     img_emb = img_model.encode([Image.open(filepath) for filepath in img_names], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
 
-    search(img_emb, img_names, prompt)
+    search(model, img_emb, img_names, prompt, num_frames)
 
-    for filename in os.listdir('./scene-keyframes/'):
-        file_path = os.path.join('./scene-keyframes/', filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+    # Clean up
+    # for filename in os.listdir('./scene-keyframes/'):
+    #     file_path = os.path.join('./scene-keyframes/', filename)
+    #     if os.path.isfile(file_path):
+    #         os.remove(file_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
-    # Add command-line arguments
-    parser.add_argument("video", type=int, help="Description of arg1")
+    parser.add_argument("--video", type=str, help="Video path")
+    parser.add_argument("--prompt", type=str, help="Prompt for image search")
+    parser.add_argument("--num_frames", type=int, help="Number of thumbnails to return")
+
+    args = parser.parse_args()
+    
+    # Initialize models
+    model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
+    img_model = SentenceTransformer('clip-ViT-B-32')
+
+    main(model, img_model, args.video, args.prompt, args.num_frames)
 
 # Original method - Take all frames and run image QA (composition, low-blur, etc.), then take keyframes => Too slow
 
