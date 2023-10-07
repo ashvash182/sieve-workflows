@@ -10,10 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scenedetect import detect, ContentDetector, split_video_ffmpeg, AdaptiveDetector
 import subprocess
+import argparse
 
 model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
 img_model = SentenceTransformer('clip-ViT-B-32')
 
+# Helper to display images
 def plot_images(images, query, n_row=3, n_col=3):
     _, axs = plt.subplots(n_row, n_col, figsize=(12, 12))
     axs = axs.flatten()
@@ -22,7 +24,8 @@ def plot_images(images, query, n_row=3, n_col=3):
         ax.imshow(img)
     plt.show()
     
-def search(query, k=9):
+# Query embedded images
+def search(img_emb, img_names, query, k=9):
     query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
     
     hits = util.semantic_search(query_emb, img_emb, top_k=k)[0]
@@ -37,30 +40,42 @@ def search(query, k=9):
         save_path = os.path.join("./", filename)
         image.save(save_path)
         
-    plot_images(matched_images, query)
+    # plot_images(matched_images, query)
 
+# Create title from video contents
 def generate_title(video):
     raise NotImplementedError
 
+# Google API to create font .png => Overlay on final thumbnail candidates
 def apply_font(text):
     raise NotImplementedError
     
-vid_name = './videos/balrog.mp4'
+# Start pipeline
+def main(vid_name, prompt):
+    vid_name = './videos/balrog.mp4'
 
-subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
+    subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
 
-data_path = './scene-keyframes/'
+    data_path = './scene-keyframes/'
 
-img_names = list(glob.glob(f'{data_path}*.jpg'))
+    img_names = list(glob.glob(f'{data_path}*.jpg'))
 
-img_emb = img_model.encode([Image.open(filepath) for filepath in img_names], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
+    img_emb = img_model.encode([Image.open(filepath) for filepath in img_names], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
 
-for filename in os.listdir('./scene-keyframes/'):
-    file_path = os.path.join('./scene-keyframes/', filename)
-    if os.path.isfile(file_path):
-        os.remove(file_path)
+    search(img_emb, img_names, prompt)
 
-# Original method - Take all frames and run image QA, then take keyframes => Too slow
+    for filename in os.listdir('./scene-keyframes/'):
+        file_path = os.path.join('./scene-keyframes/', filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    
+    # Add command-line arguments
+    parser.add_argument("video", type=int, help="Description of arg1")
+
+# Original method - Take all frames and run image QA (composition, low-blur, etc.), then take keyframes => Too slow
 
 # input_video_path = 'balrog.mp4'
 # output_directory = 'sampled_frames'
