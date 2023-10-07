@@ -48,7 +48,7 @@ def apply_font(text):
     raise NotImplementedError
     
 # Start pipeline
-def main(model, img_model, vid_name, prompt, num_frames=4):
+def main(model, img_model, vid_name, prompt, podcast, title_text, num_frames):
     if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
         subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
 
@@ -71,7 +71,9 @@ if __name__ == "__main__":
     
     parser.add_argument("--video", type=str, help="Video path")
     parser.add_argument("--prompt", type=str, help="Prompt for image search")
-    parser.add_argument("--num_frames", type=int, help="Number of thumbnails to return")
+    parser.add_argument("--num_frames", default=4, type=int, help="Number of thumbnails to return")
+    parser.add_argument("--podcast", default=False, type=bool, help="Is this video a podcast?")
+    parser.add_argument("--title_text", default=False, help="Presence of title, and if specified or needs to be generated")
 
     args = parser.parse_args()
     
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
     img_model = SentenceTransformer('clip-ViT-B-32')
 
-    main(model, img_model, args.video, args.prompt, args.num_frames)
+    main(model, img_model, args.video, args.prompt, args.podcast, args.title_text, args.num_frames)
 
 # Original method - Take all frames and run image QA (composition, low-blur, etc.), then take keyframes => Too slow
 
