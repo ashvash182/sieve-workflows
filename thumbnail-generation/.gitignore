@@ -1,0 +1,13 @@
+__pycache__
+.ipynb_checkpoints
+bin
+clipped
+etc
+images
+include
+lib
+recognize-anything
+share
+videos
+playing.ipynb
+scene-keyframes
