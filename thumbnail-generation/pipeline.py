@@ -47,8 +47,8 @@ def generate_title(video):
 def apply_font(text):
     raise NotImplementedError
     
-# Start pipeline
-def main(model, img_model, vid_name, prompt, podcast, title_text, num_frames):
+# Start regular pipeline
+def main_reg(model, img_model, vid_name, prompt, title_text, num_frames):
     if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
         subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
 
@@ -66,14 +66,25 @@ def main(model, img_model, vid_name, prompt, podcast, title_text, num_frames):
     #     if os.path.isfile(file_path):
     #         os.remove(file_path)
 
+# Start podcast style pipeline
+def main_podcast(model, img_model, vid_name, prompt, title_text, num_frmaes):
+    if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
+        subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
+
+    data_path = './scene-keyframes/'
+
+    img_names = list(glob.glob(f'{data_path}*.jpg'))
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--video", type=str, help="Video path")
     parser.add_argument("--prompt", type=str, help="Prompt for image search")
     parser.add_argument("--num_frames", default=4, type=int, help="Number of thumbnails to return")
-    parser.add_argument("--podcast", default=False, type=bool, help="Is this video a podcast?")
+    parser.add_argument("--podcast_style", default=False, type=bool, help="Show all people's faces in image")
+    # https://github.com/Nirvan101/Person-Re-identification
     parser.add_argument("--title_text", default=False, help="Presence of title, and if specified or needs to be generated")
+    parser.add_argument("--graphic", default=None, type=str, help="Option to include graphic in thumbnail, e.g. text art, ")
 
     args = parser.parse_args()
     
@@ -81,7 +92,10 @@ if __name__ == "__main__":
     model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
     img_model = SentenceTransformer('clip-ViT-B-32')
 
-    main(model, img_model, args.video, args.prompt, args.podcast, args.title_text, args.num_frames)
+    if not args.podcast_style:
+        main_reg(model, img_model, args.video, args.prompt, args.title_text, args.num_frames)
+    else:
+        main_podcast(model, img_model, args.video, args.prompt, args.title_text, args.num_frames)
 
 # Original method - Take all frames and run image QA (composition, low-blur, etc.), then take keyframes => Too slow
 
