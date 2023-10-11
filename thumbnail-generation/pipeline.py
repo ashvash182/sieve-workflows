@@ -1,28 +1,19 @@
 import numpy as np
 import os
 from sentence_transformers import SentenceTransformer, util
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import glob
-from IPython.display import display
-from IPython.display import Image as IPImage
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scenedetect import detect, ContentDetector, split_video_ffmpeg, AdaptiveDetector
 import subprocess
 import argparse
+import sieve
 
-# Helper to display images
-def plot_images(images, query, n_row=3, n_col=3):
-    _, axs = plt.subplots(n_row, n_col, figsize=(12, 12))
-    axs = axs.flatten()
-    for img, ax in zip(images, axs):
-        ax.set_title(query)
-        ax.imshow(img)
-    plt.show()
+fonts_api_key = 'AIzaSyDA6LUiRHWFMwluojjn-_T6WPxH-NTOOzY'
     
 # Query embedded images
-def search(model, img_emb, img_names, query, k=9):
+def query(model, img_emb, img_names, query, k=9):
     query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
     
     hits = util.semantic_search(query_emb, img_emb, top_k=k)[0]
@@ -37,18 +28,20 @@ def search(model, img_emb, img_names, query, k=9):
         save_path = os.path.join("./", filename)
         image.save(save_path)
         
-    # plot_images(matched_images, query)
-
 # Create title from video contents
 def generate_title(video):
-    raise NotImplementedError
+    video = sieve.Video(path=video)
+    get_title = sieve.function.get('sieve/video_transcript_analyzer')
+    return get_title.run(video)
 
-# Google API to create font .png => Overlay on final thumbnail candidates
-def apply_font(text):
-    raise NotImplementedError
+# Get face BB's to guide text placement on image
+def face_coords(img):
+    img = sieve.Image(path=img)
+    get_coords = sieve.function.get('sieve/mediapipe_video_face_detector')
+    return get_coords.run(sieve.Image(path=img))
     
 # Start regular pipeline
-def main_reg(model, img_model, vid_name, prompt, title_text, num_frames):
+def main(model, img_model, vid_name, title_text, num_frames, title_size):
     if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
         subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
 
@@ -56,35 +49,33 @@ def main_reg(model, img_model, vid_name, prompt, title_text, num_frames):
 
     img_names = list(glob.glob(f'{data_path}*.jpg'))
 
-    img_emb = img_model.encode([Image.open(filepath) for filepath in img_names], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
+    # img_emb = img_model.encode([Image.open(filepath) for filepath in img_names], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
 
-    search(model, img_emb, img_names, prompt, num_frames)
+    # Will use generate_title here
+    title = generate_title(vid_name)
 
-    # Clean up
-    # for filename in os.listdir('./scene-keyframes/'):
-    #     file_path = os.path.join('./scene-keyframes/', filename)
-    #     if os.path.isfile(file_path):
-    #         os.remove(file_path)
+    width = 512
+    height = 512
 
-# Start podcast style pipeline
-def main_podcast(model, img_model, vid_name, prompt, title_text, num_frmaes):
-    if not os.path.exists('./scene-keyframes') or not any(os.listdir('./scene-keyframes')):
-        subprocess.run(['scenedetect', '-i', vid_name, 'save-images', '-o', './scene-keyframes'])
+    font = ImageFont.truetype("./Lato/Lato-Black.ttf", size=20)
 
-    data_path = './scene-keyframes/'
+    # imgDraw = ImageDraw.Draw(img)
 
-    img_names = list(glob.glob(f'{data_path}*.jpg'))
+    # imgDraw.text((10, 10), title, font=font, fill=(255, 255, 0))
+
+    # img.save('result.png')
+
+    # query(model, img_emb, img_names, prompt, num_frames)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--video", type=str, help="Video path")
-    parser.add_argument("--prompt", type=str, help="Prompt for image search")
     parser.add_argument("--num_frames", default=4, type=int, help="Number of thumbnails to return")
-    parser.add_argument("--podcast_style", default=False, type=bool, help="Show all people's faces in image")
     # https://github.com/Nirvan101/Person-Re-identification
-    parser.add_argument("--title_text", default=False, help="Presence of title, and if specified or needs to be generated")
-    parser.add_argument("--graphic", default=None, type=str, help="Option to include graphic in thumbnail, e.g. text art, ")
+    parser.add_argument("--title_text", default="", help="Presence of title, and if specified or needs to be generated")
+    parser.add_argument("--text_size", default=0.5, type=int, help="Size of title text, in between 0-1")
+    # parser.add_argument("--graphic", default=None, type=str, help="Option to include graphic in thumbnail, e.g. text, art)
 
     args = parser.parse_args()
     
@@ -92,38 +83,4 @@ if __name__ == "__main__":
     model = SentenceTransformer('clip-ViT-B-32-multilingual-v1')
     img_model = SentenceTransformer('clip-ViT-B-32')
 
-    if not args.podcast_style:
-        main_reg(model, img_model, args.video, args.prompt, args.title_text, args.num_frames)
-    else:
-        main_podcast(model, img_model, args.video, args.prompt, args.title_text, args.num_frames)
-
-# Original method - Take all frames and run image QA (composition, low-blur, etc.), then take keyframes => Too slow
-
-# input_video_path = 'balrog.mp4'
-# output_directory = 'sampled_frames'
-# os.makedirs(output_directory, exist_ok=True)
-
-# cap = cv2.VideoCapture(input_video_path)
-# frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-# frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-# frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-# sampler = 15
-
-# frame_number = 0
-
-# while True:
-#     ret, frame = cap.read()
-    
-#     if not ret:
-#         break
-
-#     if frame_number % sampler == 0:
-#         frame_filename = os.path.join(output_directory, f'frame_{frame_number:04d}.jpg')
-#         cv2.imwrite(frame_filename, frame)
-#         frame_number += 1
-    
-#     frame_number += 1
-
-# cap.release()
-# cv2.destroyAllWindows()
+    main(model, img_model, args.video, args.title_text, args.num_frames, args.text_size)
