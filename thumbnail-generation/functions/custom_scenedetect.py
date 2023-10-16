@@ -16,13 +16,19 @@ def custom_pyscenedetect(video : sieve.Video):
 
     video = open_video(video.path)
     scene_manager = SceneManager()
+    scene_manager.auto_downscale = True
     scene_manager.add_detector(ContentDetector())
 
     output_dir = os.path.join(tempfile.gettempdir(), './scene_outputs/')
     
     video_clip_mins = VideoFileClip(video.path).duration/60
+    
+    if video_clip_mins > 10:
+        frame_skip = 4*int(video_clip_mins)
+        
+    frame_skip = 2*int(video_clip_mins)
 
-    scene_manager.detect_scenes(video, frame_skip=2*int(video_clip_mins))
+    scene_manager.detect_scenes(video, frame_skip=frame_skip)
     scenes = scene_manager.get_scene_list()
     
     save_images(scenes, video=video, num_images=1, output_dir=output_dir, image_extension='png')
