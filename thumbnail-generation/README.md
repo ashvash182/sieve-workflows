@@ -1,4 +1,2 @@
 # thumbnail generation workflow
-- takes in a video path, prompt, number of desired outputs, and optional title text
-- uses pyscenedetect, CLIP image embeddings, and semantic search to locate keyframes closest to thumbnail prompt
-- (in progress) overlays title text (if provided, or generates from video contents) using google fonts API
+This workflow uses PySceneDetect to identify important sections within the provided video and extracts the highest quality keyframes. It then provides examples for compelling thumbnails that come with a title, generated using GPT-4 on the video's transcript. Users can also specify which font from a selection of available fonts as well as the number of overlaid images they would like in the final thumbnail candidates, ranging from 1 to 3 (coming soon).
