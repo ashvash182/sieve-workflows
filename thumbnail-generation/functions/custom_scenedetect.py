@@ -8,7 +8,7 @@ import sieve
                 system_packages=["libgl1", "ffmpeg"])
 def custom_pyscenedetect(video : sieve.Video):
     from scenedetect import open_video, SceneManager, ContentDetector, AdaptiveDetector, save_images
-
+    
     from moviepy.editor import VideoFileClip
 
     import tempfile

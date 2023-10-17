@@ -27,13 +27,13 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     draw = ImageDraw.Draw(blurred_image)
 
     # Define the text and font properties
-    font_size = 30
-    if len(text) < 15:
-        font_size = 80
-    elif len(text) < 30:
+    if len(text) > 40:
         font_size = 40
-    elif len(text) < 50:
-        font_size = 25
+    elif len(text) > 20:
+        font_size = 60
+    else:
+        font_size = 80
+        
     font = ImageFont.truetype(font_path, font_size)  # Use an appropriate font file
 
     print('font successfully loaded!')
@@ -60,16 +60,11 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     # Add the text to the image
     draw.text((x, y), text, fill=text_color, font=font)
     
-    border_color = (128, 0, 128)  # RGB color values for purple
-
     # Create a border around the whole image
     bordered_image = ImageOps.expand(blurred_image)
-    
-    # Calculate the horizontal position for the centering of side-by-side images
-    center_x = int((image_width - 2 * 100) // 2)
 
     # Calculate the vertical position for the images above the text
-    image_y = int(y - 6 * 100)  # Place above the text and provide some space
+    image_y = int(0.3*y)  # Place above the text and provide some space
     
     scaler = 2.3
     sep = 75
@@ -91,8 +86,6 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     combined_image.paste(bordered_image, (0, 0))
     combined_image.paste(image1, (int((image_width - sep - 2*(image_width//scaler))//2), image_y))
     combined_image.paste(image2, (int((image_width - sep - 2*(image_width//scaler))//2 + sep + image_width//scaler), image_y))
-    # combined_image.paste(bordered_image, (0, image_height))
-    # combined_image.paste(bordered_image, (0, image_height + 100))
     
     combined_image.show()
 
