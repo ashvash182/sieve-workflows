@@ -9,6 +9,16 @@ import subprocess
                 system_packages=["ffmpeg"],
                 run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
 def workflow(video : sieve.Video):
+    import shutil
+    import os
+    import tempfile
+
+    temp_dir = os.path.join(tempfile.gettempdir(), '/scene_outputs/')
+
+    if os.path.exists(temp_dir) and os.path.isdir(temp_dir):
+        # The directory exists, so you can remove it
+        shutil.rmtree(temp_dir)
+
     # Custom scene detection to account for longer videos and to return image paths for further filtering
     
     print('extracting scene keyframes...')
@@ -27,10 +37,12 @@ def workflow(video : sieve.Video):
 
     video_title = list(sieve.function.get('sieve/video_transcript_analyzer').run(video))[3]['title']
 
+    # video_title = 'placeholder title for long generations'
+
     def process_scene(scene):
         job = face_detector.push(scene)
         res = list(job.result())
-        if res and not res[1] == []:
+        if res:
             return scene
 
     print('choosing frames with people present...')
@@ -41,13 +53,15 @@ def workflow(video : sieve.Video):
             if job:
                 bbox_valid.append(job)
 
-    font_path = './workflow-custom-fonts/Bebas_Neue/BebasNeue-Regular.ttf'
+    font_path = '/workflow-custom-fonts/Bebas_Neue/BebasNeue-Regular.ttf'
     
     print('creating thumbnails...')
 
-    for i in range(1):
+    combos = []
+
+    for i in range(4):
         base, left, right = random.sample(bbox_valid, 3)
-        print('base, left, right ', base, left, right)
+        # combos.append(base, left, right, video_title, font_path)
         yield text_overlay.run(base, left, right, video_title, font_path)
 
     print('finished!')
@@ -60,8 +74,3 @@ def workflow(video : sieve.Video):
 #     # parser.add_argument("--title_text", default="", help="Presence of title, and if specified or needs to be generated")
 
 #     args = parser.parse_args()
-
-#     out = workflow(sieve.Video(path=args.video))
-
-#     for o in out:
-#         print(o)

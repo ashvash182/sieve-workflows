@@ -7,7 +7,7 @@ import sieve
                     "moviepy"],
                 system_packages=["libgl1", "ffmpeg"])
 def custom_pyscenedetect(video : sieve.Video):
-    from scenedetect import open_video, SceneManager, ContentDetector, save_images
+    from scenedetect import open_video, SceneManager, ContentDetector, AdaptiveDetector, save_images
 
     from moviepy.editor import VideoFileClip
 
@@ -17,16 +17,19 @@ def custom_pyscenedetect(video : sieve.Video):
     video = open_video(video.path)
     scene_manager = SceneManager()
     scene_manager.auto_downscale = True
-    scene_manager.add_detector(ContentDetector())
-
+    scene_manager.add_detector(AdaptiveDetector())
+    
     output_dir = os.path.join(tempfile.gettempdir(), './scene_outputs/')
+
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
+
+    os.makedirs(output_dir, exist_ok=True)
     
     video_clip_mins = VideoFileClip(video.path).duration/60
-    
-    if video_clip_mins > 10:
-        frame_skip = 4*int(video_clip_mins)
         
-    frame_skip = 2*int(video_clip_mins)
+    frame_skip = 4*int(video_clip_mins)
 
     scene_manager.detect_scenes(video, frame_skip=frame_skip)
     scenes = scene_manager.get_scene_list()
@@ -42,5 +45,3 @@ def custom_pyscenedetect(video : sieve.Video):
     # Yield the file paths
     for image_file in image_files:
         yield sieve.Image(path=os.path.join(output_dir, image_file))
-    
-    # Need to remove tmpdir

@@ -27,7 +27,13 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     draw = ImageDraw.Draw(blurred_image)
 
     # Define the text and font properties
-    font_size = 80
+    font_size = 30
+    if len(text) < 15:
+        font_size = 80
+    elif len(text) < 30:
+        font_size = 40
+    elif len(text) < 50:
+        font_size = 25
     font = ImageFont.truetype(font_path, font_size)  # Use an appropriate font file
 
     print('font successfully loaded!')
@@ -79,7 +85,7 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     image2 = ImageOps.expand(image2, border=5, fill='black')
     
     # Create a new image to combine the base image, two side-by-side images, and text
-    combined_image = Image.new('RGB', (image_width, image_height + 2 * 100 + text_height))
+    combined_image = Image.new('RGB', (image_width, image_height))
 
     # Paste the base image, two images, and text onto the new image
     combined_image.paste(bordered_image, (0, 0))
