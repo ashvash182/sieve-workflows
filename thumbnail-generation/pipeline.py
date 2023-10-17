@@ -2,9 +2,12 @@ import argparse
 import sieve
 import concurrent
 import random
+import subprocess
+
 
 @sieve.function(name='video-thumbnails',
-                system_packages=["ffmpeg"])
+                system_packages=["ffmpeg"],
+                run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
 def workflow(video : sieve.Video):
     # Custom scene detection to account for longer videos and to return image paths for further filtering
     
@@ -23,12 +26,12 @@ def workflow(video : sieve.Video):
     print('getting video title...')
 
     video_title = list(sieve.function.get('sieve/video_transcript_analyzer').run(video))[3]['title']
-    
+
     def process_scene(scene):
         job = face_detector.push(scene)
         res = list(job.result())
         if res and not res[1] == []:
-            return scene.path
+            return scene
 
     print('choosing frames with people present...')
 
@@ -38,11 +41,14 @@ def workflow(video : sieve.Video):
             if job:
                 bbox_valid.append(job)
 
+    font_path = './workflow-custom-fonts/Bebas_Neue/BebasNeue-Regular.ttf'
+    
     print('creating thumbnails...')
 
     for i in range(1):
         base, left, right = random.sample(bbox_valid, 3)
-        yield text_overlay.run(base, left, right, video_title)
+        print('base, left, right ', base, left, right)
+        yield text_overlay.run(base, left, right, video_title, font_path)
 
     print('finished!')
 

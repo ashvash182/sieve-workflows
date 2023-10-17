@@ -1,16 +1,21 @@
 import sieve
 
 @sieve.function(name="image_text_overlay",
-                python_packages=["Pillow"])
-def text_overlay_func(base, left, right, text) -> sieve.Image:
+                python_packages=["Pillow"],
+                run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
+def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Image, text : str, font_path : str) -> sieve.Image:
     from PIL import Image, ImageFilter, ImageOps, ImageFont, ImageDraw
     import colorsys
+
+    base = base.path
+    left = left.path
+    right = right.path
 
     import tempfile
     # Load the image
     if not base:
         return
-    image = Image.open(base["img_path"])
+    image = Image.open(base)
 
     # Apply a Gaussian blur to the image
     blurred_image = image.filter(ImageFilter.GaussianBlur(radius=10))
@@ -23,7 +28,9 @@ def text_overlay_func(base, left, right, text) -> sieve.Image:
 
     # Define the text and font properties
     font_size = 80
-    font = ImageFont.truetype("./fonts/Lato/Lato-Black.ttf", font_size)  # Use an appropriate font file
+    font = ImageFont.truetype(font_path, font_size)  # Use an appropriate font file
+
+    print('font successfully loaded!')
 
     # Calculate text size and position
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -62,12 +69,12 @@ def text_overlay_func(base, left, right, text) -> sieve.Image:
     sep = 75
 
     # Load and resize the first image
-    image1 = Image.open(left["img_path"])
+    image1 = Image.open(left)
     image1 = image1.resize((int(image_width//scaler), int(image_height//scaler)))  # Resize as needed
     image1 = ImageOps.expand(image1, border=5, fill='black')
 
     # Load and resize the second image
-    image2 = Image.open(right["img_path"])
+    image2 = Image.open(right)
     image2 = image2.resize((int(image_width//scaler), int(image_height//scaler)))  # Resize as needed
     image2 = ImageOps.expand(image2, border=5, fill='black')
     
