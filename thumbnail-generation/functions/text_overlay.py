@@ -87,7 +87,7 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     combined_image.paste(image1, (int((image_width - sep - 2*(image_width//scaler))//2), image_y))
     combined_image.paste(image2, (int((image_width - sep - 2*(image_width//scaler))//2 + sep + image_width//scaler), image_y))
     
-    combined_image.show()
+    # combined_image.show()
 
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
         temp_filename = temp_file.name

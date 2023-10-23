@@ -19,7 +19,7 @@ def custom_pyscenedetect(video : sieve.Video):
     scene_manager.auto_downscale = True
     scene_manager.add_detector(AdaptiveDetector())
     
-    output_dir = os.path.join(tempfile.gettempdir(), './scene_outputs/')
+    output_dir = './scene_outputs/'
 
     if os.path.exists(output_dir):
         import shutil
@@ -48,8 +48,3 @@ def custom_pyscenedetect(video : sieve.Video):
     # Yield the file paths
     for image_file in image_files:
         yield sieve.Image(path=os.path.join(output_dir, image_file))
-    
-    # Cleanup
-    if os.path.exists(output_dir):
-        import shutil
-        shutil.rmtree(output_dir)

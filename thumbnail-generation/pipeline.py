@@ -9,6 +9,12 @@ import subprocess
                 system_packages=["ffmpeg"],
                 run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
 def workflow(video : sieve.Video, font : str, CLIP_prompts : str):
+    '''
+    :param video: A video input
+    :param font: Desired font for video title (See https://github.com/ashvash182/workflow-custom-fonts)
+    :param CLIP_prompts: A comma-separated list of CLIP prompts for objects, people, etc. desired in the final thumbnail
+    :return: A set of video thumbnails
+    '''
     import shutil
     import os
     import tempfile
@@ -43,32 +49,48 @@ def workflow(video : sieve.Video, font : str, CLIP_prompts : str):
 
     video_title = list(sieve.function.get('ansh-sievedata-com/generate_video_title').run(video))
 
+    from sentence_transformers import SentenceTransformer, util
+
+    model = SentenceTransformer('clip-ViT-L-14')
+    img_model = SentenceTransformer('clip-ViT-L-14')
+
     CLIP_outputs = []
 
     def search(query, k=5):
         query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
         hits = util.semantic_search(query_emb, img_emb, top_k=k)[0]
-
+        
+        matched = []
         for hit in hits:
             image_path = img_names[hit['corpus_id']]  
-            CLIP_outputs.append(sieve.Image(path=image_path))
-    
+            matched.append(sieve.Image(path=image_path))
+            
+        CLIP_outputs.append(matched)
+        
     img_names = [img.path for img in scenes]
+
+    print('creating image embeddings')
 
     img_emb = img_model.encode([Image.open(img.path) for img in scenes], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
 
+    import shutil
+    shutil.rmtree('./scene_outputs')
+
+    print('searching for prompts...')
+    
     for prompt in CLIP_prompts.split(","):
         search(prompt, k=5)
     
     print('creating thumbnails...')
 
     text_overlay = sieve.function.get('ansh-sievedata-com/image_text_overlay')
+    # text_overlay_two = sieve.function.get('ansh-sieve-data/image_text_overlay_two')
 
     font_path = f'/workflow-custom-fonts/{font}/{font}-Regular.ttf'
 
-    for i in range(4):
-        base, left, right = random.sample(CLIP_outputs, 3)
-        yield from text_overlay.run(base, left, right, video_title, font_path)
+    base, left, right = random.sample(CLIP_outputs, 3)
+    yield text_overlay.run(base, left, right, video_title, font_path)
+    # yield text_overlay_two.run(base, left, right, video_title, font_path)
 
     print('finished!')
