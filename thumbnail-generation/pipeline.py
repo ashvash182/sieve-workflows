@@ -8,10 +8,18 @@ import subprocess
 @sieve.function(name='video-thumbnails',
                 system_packages=["ffmpeg"],
                 run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
-def workflow(video : sieve.Video):
+def workflow(video : sieve.Video, font : str, CLIP_prompts : str):
     import shutil
     import os
     import tempfile
+    import openai
+    from sentence_transformers import SentenceTransformer, util
+    from PIL import Image
+
+    print('loading CLIP...')
+
+    model = SentenceTransformer('clip-ViT-L-14')
+    img_model = SentenceTransformer('clip-ViT-L-14')
 
     temp_dir = os.path.join(tempfile.gettempdir(), '/scene_outputs/')
 
@@ -27,50 +35,40 @@ def workflow(video : sieve.Video):
 
     scenes = list(scenes)
 
-    if len(scenes) > 10:
-        scenes = random.sample(scenes, 10)
+    if not scenes:
+        # Output singular video frame, meaning no scenes extracted!
+        return
                 
-    face_detector = sieve.function.get('sieve/mediapipe_face_detector')
-    text_overlay = sieve.function.get('ansh-sievedata-com/image_text_overlay')
-
     print('getting video title...')
 
-    video_title = list(sieve.function.get('sieve/video_transcript_analyzer').run(video))[3]['title']
+    video_title = list(sieve.function.get('ansh-sievedata-com/generate_video_title').run(video))
 
-    # video_title = 'placeholder title for long generations'
+    CLIP_outputs = []
 
-    def process_scene(scene):
-        job = face_detector.push(scene)
-        res = list(job.result())
-        if res:
-            return scene
+    def search(query, k=5):
+        query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
-    print('choosing frames with people present...')
+        hits = util.semantic_search(query_emb, img_emb, top_k=k)[0]
 
-    bbox_valid = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for job in executor.map(process_scene, scenes):
-            if job:
-                bbox_valid.append(job)
+        for hit in hits:
+            image_path = img_names[hit['corpus_id']]  
+            CLIP_outputs.append(sieve.Image(path=image_path))
+    
+    img_names = [img.path for img in scenes]
 
-    font_path = '/workflow-custom-fonts/Bebas_Neue/BebasNeue-Regular.ttf'
+    img_emb = img_model.encode([Image.open(img.path) for img in scenes], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
+
+    for prompt in CLIP_prompts.split(","):
+        search(prompt, k=5)
     
     print('creating thumbnails...')
 
-    combos = []
+    text_overlay = sieve.function.get('ansh-sievedata-com/image_text_overlay')
+
+    font_path = f'/workflow-custom-fonts/{font}/{font}-Regular.ttf'
 
     for i in range(4):
-        base, left, right = random.sample(bbox_valid, 3)
-        # combos.append(base, left, right, video_title, font_path)
-        yield text_overlay.run(base, left, right, video_title, font_path)
+        base, left, right = random.sample(CLIP_outputs, 3)
+        yield from text_overlay.run(base, left, right, video_title, font_path)
 
     print('finished!')
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-    
-#     parser.add_argument("--video", type=str, help="Video path")
-#     # parser.add_argument("--num_frames", default=4, type=int, help="Number of thumbnails to return")
-#     # parser.add_argument("--title_text", default="", help="Presence of title, and if specified or needs to be generated")
-
-#     args = parser.parse_args()

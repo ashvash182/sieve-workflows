@@ -30,6 +30,9 @@ def custom_pyscenedetect(video : sieve.Video):
     video_clip_mins = VideoFileClip(video.path).duration/60
         
     frame_skip = 4*int(video_clip_mins)
+    
+    if (video_clip_mins <= 5):
+        frame_skip = 0
 
     scene_manager.detect_scenes(video, frame_skip=frame_skip)
     scenes = scene_manager.get_scene_list()
@@ -45,3 +48,8 @@ def custom_pyscenedetect(video : sieve.Video):
     # Yield the file paths
     for image_file in image_files:
         yield sieve.Image(path=os.path.join(output_dir, image_file))
+    
+    # Cleanup
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
