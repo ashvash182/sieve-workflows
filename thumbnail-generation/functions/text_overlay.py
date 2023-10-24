@@ -2,7 +2,7 @@ import sieve
 
 @sieve.function(name="image_text_overlay",
                 python_packages=["Pillow"],
-                run_commands=["git clone https://github.com/ashvash182/workflow-custom-fonts"])
+                run_commands=["mkdir -p /src/fonts", "git clone https://github.com/ashvash182/workflow-custom-fonts /src/fonts"])
 def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Image, text : str, font_path : str) -> sieve.Image:
     from PIL import Image, ImageFilter, ImageOps, ImageFont, ImageDraw
     import colorsys
@@ -52,10 +52,7 @@ def text_overlay_func(base : sieve.Image, left : sieve.Image, right : sieve.Imag
     luminance = colorsys.rgb_to_yiq(*bg_color_rgb)[0]
 
     # Determine the text color (black or white) based on background luminance
-    if luminance > 128:
-        text_color = "black"
-    else:
-        text_color = "white"
+    text_color = 'white'
 
     # Add the text to the image
     draw.text((x, y), text, fill=text_color, font=font)

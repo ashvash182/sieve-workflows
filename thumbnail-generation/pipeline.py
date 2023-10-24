@@ -4,12 +4,13 @@ import random
 
 @sieve.function(name='video-thumbnails',
                 python_packages=["openai", "sentence_transformers", "Pillow"],
-                system_packages=["ffmpeg"])
+                system_packages=["ffmpeg"],
+                run_commands=["mkdir -p /src/fonts", "git clone https://github.com/ashvash182/workflow-custom-fonts /src/fonts"])
 def main(video : sieve.Video, font : str, CLIP_prompts : str):
     '''
     :param video: A video input
-    :param font: Desired font for video title (See https://github.com/ashvash182/workflow-custom-fonts)
-    :param CLIP_prompts: A comma-separated list of CLIP prompts for objects, people, etc. desired in the final thumbnail
+    :param font: Desired font for video title (See https://github.com/ashvash182/workflow-custom-fonts), or let LLM auto-select based on video style
+    :param CLIP_prompts: A comma-separated list of prompts for objects, people, actions, etc. desired in the final thumbnail
     :return: A set of video thumbnails
     '''
     import shutil
@@ -45,8 +46,6 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
         # Output singular video frame, meaning no scenes extracted!
         return
                 
-    # print('getting video title...')
-
     video_title = sieve.function.get('ansh-sievedata-com/generate_video_title').run(video)
 
     from sentence_transformers import SentenceTransformer, util
@@ -79,24 +78,28 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
 
     for prompt in CLIP_prompts.split(","):
         search(prompt, k=5)
+
+    if not CLIP_outputs:
+        CLIP_outputs = scenes
     
     print('creating thumbnails...')
 
     text_overlay = sieve.function.get('ansh-sievedata-com/image_text_overlay')
-    # text_overlay_two = sieve.function.get('ansh-sieve-data/image_text_overlay_two')
+    side_text_overlay = sieve.function.get('ansh-sievedata-com/side_text_overlay')
 
-    font_path = f'/root/fonts/workflow-custom-fonts/{font}/{font.replace("_","")}-Regular.ttf'
+    font_path = f'/src/fonts/{font}/{font.replace("_","")}-Regular.ttf'
 
-    print('selected font ', font_path)
+    print('font path ', font_path)
 
-    for i in range(5):
+    for i in range(2):
         base, left, right = random.sample(CLIP_outputs, 3)
         yield text_overlay.run(base, left, right, video_title, font_path)
-    # yield text_overlay_two.run(base, left, right, video_title, font_path)
+        yield side_text_overlay.run(base, left, video_title, font_path)
+        yield side_text_overlay.run(base, right, video_title, font_path)
 
     print('finished!')
 
-if __name__ == "__main__":
-    print('run?')
-    main(video=sieve.Video(path="./videos/muskcolbert.mp4"), font="Oswald", CLIP_prompts="stephen colbert, elon musk, talkshow")
-    print('done')
+# if __name__ == "__main__":
+#     print('run?')
+#     main(video=sieve.Video(path="./videos/muskcolbert.mp4"), font="Oswald", CLIP_prompts="stephen colbert, elon musk, talkshow")
+#     print('done')
