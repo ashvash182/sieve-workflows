@@ -6,7 +6,7 @@ import sieve
                     "opencv-python-headless==4.5.5.64",
                     "moviepy"],
                 system_packages=["libgl1", "ffmpeg"])
-def custom_pyscenedetect(video : sieve.Video):
+def custom_pyscenedetect(video : sieve.Video, frame_skip : int):
     from scenedetect import open_video, SceneManager, ContentDetector, AdaptiveDetector, save_images
     
     from moviepy.editor import VideoFileClip
@@ -29,15 +29,18 @@ def custom_pyscenedetect(video : sieve.Video):
     
     video_clip_mins = VideoFileClip(video.path).duration/60
         
-    frame_skip = 4*int(video_clip_mins)
+    if not frame_skip and video_clip_mins > 5:
+        frame_skip = 12
+
+    # frame_skip = 4
     
-    if (video_clip_mins <= 5):
-        frame_skip = 0
+    # if (video_clip_mins <= 5):
+    #     frame_skip = 0
 
     scene_manager.detect_scenes(video, frame_skip=frame_skip)
     scenes = scene_manager.get_scene_list()
     
-    save_images(scenes, video=video, num_images=1, output_dir=output_dir, image_extension='png')
+    save_images(scenes, video=video, num_images=1, output_dir=output_dir, image_extension='jpg')
 
     files = os.listdir(output_dir)
     

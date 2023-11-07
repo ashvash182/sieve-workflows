@@ -38,7 +38,8 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
     
     print('extracting scene keyframes...')
 
-    scenes = sieve.function.get('ansh-sievedata-com/custom_pyscenedetect').run(video)
+    # IMPLEMENT CONCURRENCY
+    scenes = sieve.function.get('ansh-sievedata-com/custom_pyscenedetect').run(video, 12)
 
     scenes = list(scenes)
 
@@ -46,7 +47,7 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
         # Output singular video frame, meaning no scenes extracted!
         return
                 
-    video_title = sieve.function.get('ansh-sievedata-com/generate_video_title').run(video)
+    video_title = sieve.function.get('ansh-sievedata-com/generate_video_title').run(video).replace("\"", "")
 
     from sentence_transformers import SentenceTransformer, util
 
@@ -83,19 +84,16 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
         CLIP_outputs = scenes
     
     print('creating thumbnails...')
-
-    text_overlay = sieve.function.get('ansh-sievedata-com/image_text_overlay')
-    side_text_overlay = sieve.function.get('ansh-sievedata-com/side_text_overlay')
+    
+    optimal_text_overlay = sieve.function.get('ansh-sievedata-com/optimal_text_overlay')
 
     font_path = f'/src/fonts/{font}/{font.replace("_","")}-Regular.ttf'
 
     print('font path ', font_path)
 
-    for i in range(2):
-        base, left, right = random.sample(CLIP_outputs, 3)
-        yield text_overlay.run(base, left, right, video_title, font_path)
-        yield side_text_overlay.run(base, left, video_title, font_path)
-        yield side_text_overlay.run(base, right, video_title, font_path)
+    # IMPLEMENT CONCURRENCY
+    for out in CLIP_outputs:
+        yield from optimal_text_overlay.run(out, video_title, font_path)
 
     print('finished!')
 

@@ -8,7 +8,10 @@ import sieve
 def generate_title(video : sieve.Video):
   import os
   import openai
+  from openai import OpenAI
   from moviepy.editor import VideoFileClip
+
+  client = OpenAI()
 
   vid_path = video.path
 
@@ -22,14 +25,15 @@ def generate_title(video : sieve.Video):
 
   print('extracting video transcript...')
 
-  transcript = openai.Audio.transcribe("whisper-1", audio_file)['text']
+  transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file, response_format="text")
 
   print('creating video title...')
 
-  response = openai.ChatCompletion.create(
+  # FIX ISSUE WITH LONG TRANSCRIPTS EXCEEDING TOKEN LIMIT
+  response = client.chat.completions.create(
     model = "gpt-3.5-turbo-0613",
     messages=[
-        {'role': 'system', 'content': 'create a short, simple title for the video this transcript is from.'},
+        {'role': 'system', 'content': 'create a short, simple title for the video this transcript is from. no quotes in response.'},
         {'role': 'user', 'content': transcript}
     ]
   )
