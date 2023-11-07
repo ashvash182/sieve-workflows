@@ -49,47 +49,50 @@ def optimal_text_placement(image : sieve.Image, text : str, font_path : str):
 
         min_bbox_overlap = float('inf')
         best_cand = None
+        
+        if bboxes:
+            for i, cand in enumerate(bcs):
+                print('box # ', i)
+                bbox_overlap_area = 0
 
-        for i, cand in enumerate(bcs):
-            print('box # ', i)
-            bbox_overlap_area = 0
+                for bbox in box_list:
+                    bbox_area = (bbox['x2']-bbox['x1']) * (bbox['y2']-bbox['y1'])
 
-            for bbox in box_list:
-                bbox_area = (bbox['x2']-bbox['x1']) * (bbox['y2']-bbox['y1'])
+                    w = None
+                    h = None
 
-                w = None
-                h = None
+                    if cand[0] < bbox['x1'] < cand[2]:
+                        w = cand[2] - bbox['x1']
+                    elif cand[0] < bbox['x2'] < cand[2]:
+                        w = bbox['x2'] - cand[0]
+                    elif bbox['x1'] < cand[0] < cand[2] < bbox['x2']:
+                        w = cand[2] - cand[0]
+                    else:
+                        print('no width overlap')
+                        continue
 
-                if cand[0] < bbox['x1'] < cand[2]:
-                    w = cand[2] - bbox['x1']
-                elif cand[0] < bbox['x2'] < cand[2]:
-                    w = bbox['x2'] - cand[0]
-                elif bbox['x1'] < cand[0] < cand[2] < bbox['x2']:
-                    w = cand[2] - cand[0]
-                else:
-                    print('no width overlap')
-                    continue
+                    if cand[1] < bbox['y1'] < cand[3]:
+                        h = cand[3] - bbox['y1']
+                    elif cand[1] < bbox['y2'] < cand[3]:
+                        h = bbox['y2'] - cand[1]
+                    elif bbox['y1'] < cand[1] < cand[3] < bbox['y2']:
+                        h = cand[3] - cand[1]
+                    else:
+                        print('no height overlap')
+                        continue
 
-                if cand[1] < bbox['y1'] < cand[3]:
-                    h = cand[3] - bbox['y1']
-                elif cand[1] < bbox['y2'] < cand[3]:
-                    h = bbox['y2'] - cand[1]
-                elif bbox['y1'] < cand[1] < cand[3] < bbox['y2']:
-                    h = cand[3] - cand[1]
-                else:
-                    print('no height overlap')
-                    continue
+                    bbox_overlap_area += (w*h)/bbox_area
 
-                bbox_overlap_area += (w*h)/bbox_area
-
-            if bbox_overlap_area < min_bbox_overlap:
-                min_bbox_overlap = bbox_overlap_area
-                best_cand = i
+                if bbox_overlap_area < min_bbox_overlap:
+                    min_bbox_overlap = bbox_overlap_area
+                    best_cand = i
+        else:
+            best_cand = 4
 
         with Drawing() as context:
             context.fill_color = 'None'
             context(base)
-        base.caption(text, left=bcs[best_cand][0], top=bcs[best_cand][1], width=int(bcs[best_cand][2]-bcs[best_cand][0]), height=int(bcs[best_cand][3]-bcs[best_cand][1]), font=Font(font_path, color=Color('white')), gravity='center')
+        base.caption(text, left=int(bcs[best_cand][0]), top=int(bcs[best_cand][1]), width=int(bcs[best_cand][2]-bcs[best_cand][0]), height=int(bcs[best_cand][3]-bcs[best_cand][1]), font=Font(font_path, color=Color('white')), gravity='center')
         base.save(filename='./testing_optimality.png')
         
         yield sieve.Image(path='./testing_optimality.png')
