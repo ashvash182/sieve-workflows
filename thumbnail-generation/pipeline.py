@@ -47,7 +47,7 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
 
     t = time.time()
 
-    custom_scendetect = sieve.function.get('ansh-sievedata-com/custom_pyscenedetect')
+    custom_scendetect = sieve.function.get('sieve-internal/custom_pyscenedetect')
 
     output_directory = "./subvideos"
     os.makedirs(output_directory, exist_ok=True)
@@ -96,11 +96,10 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
     print(f"Total time to extract keyframes: {time.time() - t} seconds")
     scenes = list(scenes)
 
-    video_title = sieve.function.get('ansh-sievedata-com/generate_video_title').run(video).replace("\"", "")
+    video_title = sieve.function.get('sieve-internal/generate_video_title').run(video).replace("\"", "")
 
-    if not scenes:
-        # Output singular video frame, meaning no scenes extracted!
-        return
+    # if not scenes:
+    #     return
                 
     from sentence_transformers import SentenceTransformer, util
 
@@ -138,7 +137,7 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
     
     print('creating thumbnails...')
     
-    optimal_text_overlay = sieve.function.get('ansh-sievedata-com/optimal_text_overlay')
+    optimal_text_overlay = sieve.function.get('sieve-internal/optimal_text_overlay')
 
     font_path = f'/src/fonts/{font}/{font.replace("_","")}-Regular.ttf'
 
@@ -147,7 +146,7 @@ def main(video : sieve.Video, font : str, CLIP_prompts : str):
     # IMPLEMENT CONCURRENCY
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for job in executor.map(optimal_text_overlay.push, CLIP_outputs, [video_title]*len(CLIP_outputs), [font_path]*len(CLIP_outputs)):
-            yield sieve.Image(url=list(job.result())["url"])
+            yield from job.result()
 
     print('finished!')
 

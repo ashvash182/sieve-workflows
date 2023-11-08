@@ -19,7 +19,8 @@ def optimal_text_placement(image : sieve.Image, text : str, font_path : str):
     img_path = image.path
     bboxes = list(object_detect.run(sieve.File(path=img_path)))
     
-    box_list = bboxes[0]['boxes']
+    if len(bboxes) > 0:
+        box_list = bboxes[0]['boxes']
     
     height_scaler = 2.2
     width_scaler = 2.5
