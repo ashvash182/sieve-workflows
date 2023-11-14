@@ -10,7 +10,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
     '''
     :param video: A video input
     :param video_title: Desired video title, if one is not provided it will be generated from the transcript
-    :param font: Desired font for video title (See https://github.com/ashvash182/workflow-custom-fonts), or let LLM auto-select based on video style
+    :param font: Select from Bebas_Neue (Default), Oswald, or Montserrat
     :param CLIP_prompts: A comma-separated list of prompts for objects, people, actions, etc. desired in the final thumbnail
     :return: A set of video thumbnails
     '''
@@ -21,13 +21,13 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
     import concurrent
     import shutil
     import os
-    import tempfile
     from sentence_transformers import SentenceTransformer, util
     from PIL import Image
     import time
     import numpy as np
 
     optimal_text_overlay = sieve.function.get('sieve-internal/optimal_text_overlay')
+    side_text_overlay = sieve.function.get('sieve-internal/side_text_overlay')
     custom_scendetect = sieve.function.get('sieve-internal/custom_pyscenedetect')
     get_video_title = sieve.function.get('sieve-internal/generate_video_title')
 
@@ -38,12 +38,8 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     os.makedirs("./subvideos", exist_ok=True)
     os.makedirs("./scene_outputs/", exist_ok=True)
-
-    # Custom scene detection to account for longer videos and to return image paths for further filtering
     
     print('extracting scene keyframes...')
-
-    # IMPLEMENTING CONCURRENCY
 
     t = time.time()
 
@@ -120,7 +116,8 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
         search(prompt, k=3)
 
     if not CLIP_outputs:
-        CLIP_outputs = np.random.choice(scenes, size=min(6, len(scenes)), replace=False)
+        print('No CLIP inputs provided')
+        return
     
     print('creating thumbnails...')
     
@@ -128,9 +125,12 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     print('font path ', font_path)
 
+    yield side_text_overlay.run(np.random.choice(CLIP_outputs), np.random.choice(CLIP_outputs), video_title, font_path)
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for job in executor.map(optimal_text_overlay.push, CLIP_outputs, [video_title]*len(CLIP_outputs), [font_path]*len(CLIP_outputs)):
-            yield from job.result()
+            if job.result() is not None:
+                yield from job.result()
 
     print('finished!')
 

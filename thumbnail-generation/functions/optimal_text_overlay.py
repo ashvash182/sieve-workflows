@@ -28,8 +28,8 @@ def optimal_text_placement(image : sieve.Image, text : str, font_path : str):
     with Image(filename=img_path, resolution=50) as base:
         bcs = [
             [base.width//8, base.height//6, base.width//8 + base.width//width_scaler, base.height//6 + base.height//height_scaler],
-            [4 * base.width//8, base.height//6, 4 * base.width//8 + base.width//width_scaler, base.height//6 + base.height//height_scaler],
-            [4 * base.width//8, base.height//2, 4 * base.width//8 + base.width//width_scaler, base.height//2 + base.height//height_scaler],
+            [3.5 * base.width//8, base.height//6, 3.5 * base.width//8 + base.width//width_scaler, base.height//6 + base.height//height_scaler],
+            [3.5 * base.width//8, base.height//2, 3.5 * base.width//8 + base.width//width_scaler, base.height//2 + base.height//height_scaler],
             [base.width//8, base.height//2, base.width//8 + base.width//width_scaler, base.height//2 + base.height//height_scaler],
             [base.width//2 - base.width//4, base.height//2 - base.height//4, base.width//2 + base.width//4, base.height//2 + base.height//4],
             
@@ -45,15 +45,19 @@ def optimal_text_placement(image : sieve.Image, text : str, font_path : str):
             
             # wider bottoms
             [base.width//2 - base.width//2.5, base.height//2, base.width//2 + base.width//2.5, base.height//2 + base.height//(height_scaler*2)],
-            [base.width//2 - base.width//2.5, base.height//1.5, base.width//2 + base.width//2.5, base.height//1.5 + base.height//(height_scaler*2)]
+            [base.width//2 - base.width//2.5, base.height//1.5, base.width//2 + base.width//2.5, base.height//1.5 + base.height//(height_scaler*2)],
+            
+            [base.width//2 - base.width//3, base.height//0.75, base.width//2 + base.width//3, base.height//0.75 + base.height//(height_scaler*2)],
+            [base.width//2 - base.width//3, base.height//0.25, base.width//2 + base.width//3, base.height//0.25 + base.height//(height_scaler*2)]
         ]
 
         min_bbox_overlap = float('inf')
         best_cand = None
         
+        if not bboxes:
+            return None
         if bboxes:
             for i, cand in enumerate(bcs):
-                print('box # ', i)
                 bbox_overlap_area = 0
 
                 for bbox in box_list:
@@ -84,11 +88,13 @@ def optimal_text_placement(image : sieve.Image, text : str, font_path : str):
 
                     bbox_overlap_area += (w*h)/bbox_area
 
+                if bbox_overlap_area == 0:
+                    print('zero overlap box found')
+                    best_cand = i
+                    break
                 if bbox_overlap_area < min_bbox_overlap:
                     min_bbox_overlap = bbox_overlap_area
                     best_cand = i
-        else:
-            best_cand = 4
 
         with Drawing() as context:
             context.fill_color = 'None'
