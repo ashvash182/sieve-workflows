@@ -64,6 +64,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     subclips = []
 
+    # Split videos into n subclips
     for i in range(n_subvideos):
         start_time = i * subvideo_duration
         end_time = (i + 1) * subvideo_duration
@@ -144,6 +145,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     print('finished!')
 
+    # Clean up
     if os.path.exists('./scene_outputs'):
         shutil.rmtree('./scene_outputs')
     if os.path.exists('./subvideos'):
