@@ -26,6 +26,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
     import time
     import numpy as np
 
+    # Load functions
     optimal_text_overlay = sieve.function.get('sieve-internal/optimal_text_overlay')
     side_text_overlay = sieve.function.get('sieve-internal/side_text_overlay')
     custom_scendetect = sieve.function.get('sieve-internal/custom_pyscenedetect')
@@ -33,9 +34,11 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     print('loading CLIP...')
 
+    # Load CLIP
     model = SentenceTransformer('clip-ViT-L-14')
     img_model = SentenceTransformer('clip-ViT-L-14')
 
+    # Subdirs for split videos and keyframes
     os.makedirs("./subvideos", exist_ok=True)
     os.makedirs("./scene_outputs/", exist_ok=True)
     
@@ -47,6 +50,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
     video_duration = video_clip.duration
     video_mins = video_duration//60
 
+    # How many videos to processin parallel, based on input video length
     if video_mins < 3:
         n_subvideos = 1
     elif video_mins < 5:
@@ -74,6 +78,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
     else:
         frame_skip = 8
 
+    # Concurrent keyframe extraction with scene detect
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for job in executor.map(custom_scendetect.push, subclips, [frame_skip]*len(subclips)):
             res = list(job.result())
@@ -84,6 +89,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     scenes = list(scenes)
 
+    # Get video title if not provided
     if not video_title:
         video_title = get_video_title.run(video).replace("\"", "")
     if not font:
@@ -94,6 +100,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     CLIP_outputs = []
 
+    # Function to query over embedded frames
     def search(query, k=5):
         query_emb = model.encode([query], convert_to_tensor=True, show_progress_bar=False)
 
@@ -107,6 +114,7 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     print('creating image embeddings...')
 
+    # Image embedding
     img_emb = img_model.encode([Image.open(img[0].path) for img in scenes], batch_size=128, convert_to_tensor=True, show_progress_bar=True)
 
     print('searching for prompts...')
@@ -125,8 +133,10 @@ def main(video : sieve.Video, video_title : str, font : str, CLIP_prompts : str)
 
     print('font path ', font_path)
 
+    # Side text overlay output
     yield side_text_overlay.run(np.random.choice(CLIP_outputs), np.random.choice(CLIP_outputs), video_title, font_path)
 
+    # Concurrent processing text simple text overlay
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for job in executor.map(optimal_text_overlay.push, CLIP_outputs, [video_title]*len(CLIP_outputs), [font_path]*len(CLIP_outputs)):
             if job.result() is not None:
